@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>AI Image Generator</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<style>
+		:root {
+			--primary-color: #6366f1;
+			--primary-dark: #4f46e5;
+			--background-color: #f8fafc;
+			--surface-color: rgba(255, 255, 255, 0.8);
+			--text-color: #1e293b;
+			--border-color: rgba(148, 163, 184, 0.2);
+			--shadow-color: rgba(51, 65, 85, 0.1);
+			--error-color: #ef4444;
+		}
+
+		[data-theme="dark"] {
+			--primary-color: #818cf8;
+			--primary-dark: #6366f1;
+			--background-color: #0f172a;
+			--surface-color: rgba(30, 41, 59, 0.8);
+			--text-color: #f1f5f9;
+			--border-color: rgba(148, 163, 184, 0.1);
+			--shadow-color: rgba(0, 0, 0, 0.3);
+			--error-color: #f87171;
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		}
+
+		body {
+			background-color: var(--background-color);
+			background-image: 
+				radial-gradient(at 40% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+				radial-gradient(at 80% 0%, rgba(129, 140, 248, 0.15) 0px, transparent 50%),
+				radial-gradient(at 0% 50%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+			color: var(--text-color);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+			transition: all 0.3s ease;
+		}
+
+		.container {
+			background: var(--surface-color);
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
+			padding: 3rem;
+			border-radius: 24px;
+			border: 1px solid var(--border-color);
+			box-shadow: 0 8px 32px var(--shadow-color);
+			width: 100%;
+			max-width: 800px;
+			opacity: 0;
+			transform: translateY(20px);
+			animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		}
+
+		.theme-toggle {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			background: var(--surface-color);
+			border: 1px solid var(--border-color);
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+			transition: all 0.3s ease;
+			overflow: hidden;
+			padding: 0;
+			box-shadow: 0 4px 12px var(--shadow-color);
+		}
+
+		.theme-toggle:hover {
+			transform: scale(1.1);
+			box-shadow: 0 8px 24px var(--shadow-color);
+		}
+
+		.theme-toggle-inner {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.theme-toggle i {
+			position: absolute;
+			font-size: 1.25rem;
+			transition: all 0.3s ease;
+			color: var(--text-color);
+		}
+
+		.sun-icon {
+			opacity: 0;
+			transform: rotate(180deg) scale(0.5);
+		}
+
+		.moon-icon {
+			opacity: 1;
+			transform: rotate(0) scale(1);
+		}
+
+		[data-theme="dark"] .sun-icon {
+			opacity: 1;
+			transform: rotate(0) scale(1);
+		}
+
+		[data-theme="dark"] .moon-icon {
+			opacity: 0;
+			transform: rotate(-180deg) scale(0.5);
+		}
+
+		h1 {
+			font-size: 3rem;
+			font-weight: 800;
+			margin-bottom: 2rem;
+			text-align: center;
+			background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+			-webkit-background-clip: text;
+			background-clip: text;
+			-webkit-text-fill-color: transparent;
+			letter-spacing: -0.02em;
+		}
+
+		.input-group {
+			margin-bottom: 2rem;
+		}
+
+		input[type="text"] {
+			width: 100%;
+			padding: 1.25rem;
+			border: 1px solid var(--border-color);
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 16px;
+			font-size: 1.1rem;
+			color: var(--text-color);
+			transition: all 0.3s ease;
+			margin-bottom: 1rem;
+		}
+
+		input[type="text"]:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+		}
+
+		button {
+			background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+			color: white;
+			border: none;
+			padding: 1.25rem;
+			border-radius: 16px;
+			font-size: 1.1rem;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			width: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.75rem;
+		}
+
+		button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+		}
+
+		.loading {
+			display: none;
+			text-align: center;
+			margin: 2rem 0;
+			color: var(--primary-color);
+		}
+
+		.loading-icons {
+			display: flex;
+			justify-content: center;
+			gap: 2.5rem;
+			margin: 1.5rem 0;
+		}
+
+		.loading-icon {
+			font-size: 2rem;
+			animation: float 3s ease-in-out infinite;
+			color: var(--primary-color);
+			opacity: 0.9;
+		}
+
+		@keyframes float {
+			0%, 100% {
+				transform: translateY(0) rotate(0deg) scale(1);
+			}
+			50% {
+				transform: translateY(-20px) rotate(10deg) scale(1.1);
+			}
+		}
+
+		.loading-text {
+			font-size: 1.1rem;
+			opacity: 0.8;
+			margin-top: 1rem;
+			font-weight: 500;
+		}
+
+		#result {
+			margin-top: 2rem;
+		}
+
+		img {
+			width: 100%;
+			border-radius: 16px;
+			box-shadow: 0 8px 32px var(--shadow-color);
+			opacity: 0;
+			transform: scale(0.95);
+			animation: imageIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		}
+
+		.error {
+			color: var(--error-color);
+			padding: 1rem;
+			border-radius: 16px;
+			background: rgba(239, 68, 68, 0.1);
+			backdrop-filter: blur(8px);
+			-webkit-backdrop-filter: blur(8px);
+			border: 1px solid rgba(239, 68, 68, 0.2);
+			margin-top: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			font-weight: 500;
+		}
+
+		@keyframes fadeIn {
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@keyframes imageIn {
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+	</style>
+</head>
+<body>
+	<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+		<div class="theme-toggle-inner">
+			<i class="fas fa-sun sun-icon"></i>
+			<i class="fas fa-moon moon-icon"></i>
+		</div>
+	</button>
+	<div class="container">
+		<h1>AI Image Generator</h1>
+		<form class="input-group" id="generateForm">
+			<input
+				type="text"
+				id="promptInput"
+				placeholder="Describe something amazing..."
+				autocomplete="off"
+			/>
+			<button type="submit" id="generateBtn">
+				<i class="fas fa-wand-magic-sparkles"></i>
+				Create Magic
+			</button>
+		</form>
+		<div class="loading" id="loading">
+			<div class="loading-icons">
+				<i class="loading-icon fas fa-palette"></i>
+				<i class="loading-icon fas fa-sparkles"></i>
+				<i class="loading-icon fas fa-wand-magic"></i>
+			</div>
+			<div class="loading-text">
+				Crafting your imagination...
+			</div>
+		</div>
+		<div id="result"></div>
+	</div>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', () => {
+			const form = document.getElementById('generateForm');
+			const promptInput = document.getElementById('promptInput');
+			const generateBtn = document.getElementById('generateBtn');
+			const loading = document.getElementById('loading');
+			const result = document.getElementById('result');
+			const themeToggle = document.getElementById('themeToggle');
+
+			// Theme handling
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			const savedTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+			document.documentElement.setAttribute('data-theme', savedTheme);
+
+			themeToggle.addEventListener('click', () => {
+				const currentTheme = document.documentElement.getAttribute('data-theme');
+				const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+				document.documentElement.setAttribute('data-theme', newTheme);
+				localStorage.setItem('theme', newTheme);
+			});
+
+			// Form handling
+			form.addEventListener('submit', async (e) => {
+				e.preventDefault();
+				const prompt = promptInput.value.trim();
+				
+				if (!prompt) {
+					showError('Please enter a description for your image');
+					return;
+				}
+
+				try {
+					setLoading(true);
+					const response = await fetch('/generate-image', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ prompt }),
+					});
+
+					const data = await response.json();
+					
+					if (data.success && data.image_url) {
+						showImage(data.image_url);
+						promptInput.value = '';
+					} else {
+						throw new Error(data.error || 'Failed to generate image');
+					}
+				} catch (error) {
+					showError(error.message || 'An error occurred');
+				} finally {
+					setLoading(false);
+				}
+			});
+
+			function setLoading(isLoading) {
+				loading.style.display = isLoading ? 'block' : 'none';
+				generateBtn.disabled = isLoading;
+				promptInput.disabled = isLoading;
+				generateBtn.innerHTML = isLoading ? 
+					'<i class="fas fa-spinner fa-spin"></i> Creating...' : 
+					'<i class="fas fa-wand-magic-sparkles"></i> Create Magic';
+			}
+
+			function showImage(url) {
+				result.innerHTML = `<img src="${url}" alt="Generated image">`;
+			}
+
+			function showError(message) {
+				result.innerHTML = `
+					<div class="error">
+						<i class="fas fa-exclamation-circle"></i> ${message}
+					</div>
+				`;
+			}
+		});
+	</script>
+</body>
+</html>
